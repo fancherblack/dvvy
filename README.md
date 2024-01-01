@@ -156,8 +156,7 @@ a 50 GB entitlement is charged for 50 GB).
     calculation, a simple methodology to represent indexer consumption
     as a whole.
 
--   **kvkitBaseURL:** The URL of the [kvkit](https://kvkit.com)
-    application if installed.
+-   **kvkitBaseURL:** The URL of the kvkit application if installed.
 
 -   **splunkAdminCost**: The daily cost of a Splunk
     Administrator/Engineer to use in admin chargeback calculations (ex:
