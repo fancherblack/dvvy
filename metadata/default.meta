@@ -1,0 +1,407 @@
+[views/dvvy_jobs]
+owner = nobody
+version = 8.2.2.1
+modtime = 1633297234.734670000
+
+[views/customer_entitlements]
+version = 8.2.1
+modtime = 1630884357.707158000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[views/customer_summary]
+version = 8.2.1
+modtime = 1630883401.790795000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[views/customer_configuration]
+version = 8.2.1
+modtime = 1630884126.738709000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20License%20GB]
+version = 8.2.1
+modtime = 1629043419.817544000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20Storage]
+version = 8.2.1
+modtime = 1630881101.247063000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20Indexer%20Simple]
+version = 8.2.1
+modtime = 1629043316.838473000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20RT%20Search]
+version = 8.2.2.1
+modtime = 1633198763.083487000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20Search]
+version = 8.2.2.1
+modtime = 1633198578.967781000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20License%20GB]
+version = 8.2.1
+modtime = 1630859226.496073000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Search]
+version = 8.2.1
+modtime = 1630864016.484892000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20CPU]
+version = 8.2.1
+modtime = 1629042452.011128000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Forwarders]
+version = 8.2.1
+modtime = 1630863947.584745000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Storage]
+version = 8.2.2.1
+modtime = 1633203734.500783000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20CPU]
+version = 8.2.1
+modtime = 1630860841.077059000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20Forwarders]
+version = 8.2.1
+modtime = 1629043190.166164000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Events]
+version = 8.2.1
+modtime = 1630863805.044246000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[views/data_source_summary]
+version = 8.2.1
+modtime = 1630881965.516719000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[views/data_source_detail]
+version = 8.2.1
+modtime = 1630880625.037205000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[views/cost_centers]
+version = 8.2.1
+modtime = 1630881504.056186000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[views/chargeback_summary]
+version = 8.2.1
+modtime = 1630882793.084505000
+access = read : [ * ], write : [ admin, power ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Admin%20-%20License%20GB]
+version = 8.2.1
+modtime = 1629164541.133615000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Admin%20-%20Forwarders]
+version = 8.2.2.1
+modtime = 1633203621.663413000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Admin%20-%20Storage]
+version = 8.2.1
+modtime = 1630863676.449212000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Utilization%20Summary%20-%20Admin%20-%20Users]
+version = 8.2.1
+modtime = 1630860505.728853000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Cost%20Summary%20-%20Admin]
+version = 8.2.1
+modtime = 1630862668.812238000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Report%20-%20Over%20Entitlement%20-%20CPU]
+version = 8.2.1
+modtime = 1630861007.396152000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Report%20-%20Over%20Entitlement%20-%20License%20GB]
+version = 8.2.1
+modtime = 1629165325.010625000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Report%20-%20Over%20Entitlement%20-%20RT%20Search%20Runtime]
+version = 8.2.1
+modtime = 1630863113.447430000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Report%20-%20Over%20Entitlement%20-%20Search%20Runtime]
+version = 8.2.1
+modtime = 1630863224.115758000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Report%20-%20Over%20Entitlement%20-%20Storage%20TB]
+version = 8.2.1
+modtime = 1629165490.780059000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[savedsearches/Migrate%20Charge%20Summaries]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = nobody
+version = 8.2.1
+modtime = 1630886545.677421000
+
+[savedsearches/Migrate%20Usage%20Summaries]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = nobody
+version = 8.2.1
+modtime = 1630886445.604357000
+
+[macros/CUSTOMER_IDENTIFIER]
+export = none
+owner = nobody
+version = 8.2.1
+modtime = 1630858060.952761000
+
+[savedsearches/KV%20-%20Track%20Data]
+version = 8.2.1
+modtime = 1630864137.538246000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[macros/SEARCH_UTILIZATION_EXCLUDE]
+export = none
+owner = nobody
+version = 8.2.1
+modtime = 1630859550.409910000
+
+[indexes/dvvy_event_summary]
+owner = nobody
+version = 8.2.2.1
+modtime = 1632943641.770359000
+
+[indexes/dvvy_usage_summary]
+owner = nobody
+version = 8.2.2.1
+modtime = 1632943649.065375000
+
+[indexes/dvvy_charge_summary]
+owner = nobody
+version = 8.2.2.1
+modtime = 1632943655.024200000
+
+[savedsearches/KV%20-%20Splunk%20Infrastructure]
+version = 8.2.2.1
+modtime = 1633203576.516298000
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+
+[views/dvvy_configuration_summary]
+owner = nobody
+version = 8.2.2.1
+modtime = 1633297272.189541000
+
+[nav/default]
+version = 8.2.2.1
+modtime = 1633297375.292243000
+export = none
+owner = nobody
+
+[app/ui]
+version = 7.2.1
+modtime = 1546010390.290981000
+
+[app/launcher]
+version = 7.2.1
+modtime = 1546010390.293109000
+
+[app/package/check_for_updates]
+version = 7.2.1
+modtime = 1546010390.294162000
+
+[indexes/dvvy_storage_summary]
+owner = nobody
+version = 7.2.1
+modtime = 1547857665.010769000
+
+[indexes/dvvy_license_summary]
+owner = nobody
+version = 7.2.1
+modtime = 1547912078.969905000
+
+[indexes/dvvy_license_cost_summary]
+owner = nobody
+version = 7.2.4
+modtime = 1551050119.290800000
+
+[indexes/dvvy_storage_cost_summary]
+owner = nobody
+version = 7.2.4
+modtime = 1551050131.335049000
+
+[indexes/dvvy_indexer_cost_summary]
+owner = nobody
+version = 7.2.4
+modtime = 1551050142.268535000
+
+[indexes/dvvy_search_summary]
+owner = nobody
+version = 8.0.3
+modtime = 1616962891.955606000
+
+[indexes/dvvy_search_cost_summary]
+owner = nobody
+version = 8.0.3
+modtime = 1616970853.127706000
+
+[indexes/dvvy_infrastructure_summary]
+owner = nobody
+version = 8.0.3
+modtime = 1618149476.304308000
+
+[indexes/dvvy_cpu_cost_summary]
+owner = nobody
+version = 8.0.3
+modtime = 1618152160.548719000
+
+[collections/dvvyConfig]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.613019000
+
+[collections/dvvyCostCenters]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.629250000
+
+[collections/dvvyData]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.648188000
+
+[collections/dvvyGroups]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.668275000
+
+[collections/dvvySplunkEnvironment]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.688360000
+
+[transforms/dvvyData]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.666907000
+
+[transforms/dvvyCostCenters]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.656075000
+
+[transforms/dvvyGroups]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = nobody
+version = 7.2.1
+modtime = 1548705411.451105000
+
+[transforms/dvvyConfig]
+export = none
+owner = nobody
+version = 7.2.1
+modtime = 1548705386.769833000
+
+[transforms/dvvySplunkEnvironment]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.685261000
+
+[savedsearches/Report%20-%20Untagged%20Data]
+access = read : [ admin ], write : [ admin ]
+export = none
+owner = nobody
+version = 8.0.3
+modtime = 1618345543.426886000

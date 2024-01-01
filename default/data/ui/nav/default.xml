@@ -1,0 +1,20 @@
+<nav search_view="search" color="#AA0114">
+  <collection label="Customer">
+    <view name="customer_summary" />
+    <view name="customer_entitlements" />
+    <view name="customer_configuration" />
+  </collection>
+  <collection label="Data Sources">
+  	<view name="data_source_summary" />
+  	<view name="data_source_detail" />
+  </collection>
+  <view name="cost_centers" />
+  <view name="chargeback_summary" />
+  <collection label="Admin">
+    <view name="dvvy_jobs" />
+    <view name="dvvy_configuration_summary" />
+    <view name="reports" />
+    <view name="dashboards" />
+    <view name="search" />
+  </collection>
+</nav>

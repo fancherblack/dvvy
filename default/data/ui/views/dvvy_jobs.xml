@@ -1,0 +1,119 @@
+<form version="1.1" theme="dark">
+  <label>dvvy Jobs</label>
+  <description>Scheduled job status</description>
+  <fieldset submitButton="false">
+    <input type="time" token="timerange" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>$idx$ &amp; dvvy_event_summary</title>
+      <input type="link" token="idx" searchWhenChanged="true">
+        <label>Type</label>
+        <choice value="dvvy_usage_summary">Usage</choice>
+        <choice value="dvvy_charge_summary">Charges</choice>
+        <initialValue>dvvy_usage_summary</initialValue>
+      </input>
+      <input type="multiselect" token="dimension" searchWhenChanged="true">
+        <label>Dimension</label>
+        <choice value="*">Any</choice>
+        <delimiter> </delimiter>
+        <fieldForLabel>dimension</fieldForLabel>
+        <fieldForValue>dimension</fieldForValue>
+        <search>
+          <query>index=$idx$
+| stats count BY dimension</query>
+        </search>
+        <initialValue>*</initialValue>
+      </input>
+      <chart>
+        <title>Event count by chargeback dimension over time</title>
+        <search>
+          <query>index IN ($idx$) dimension IN ($dimension$)
+| bin _time span=1d
+| timechart usenull=0 useother=0 count by dimension limit=0
+| appendcols
+    [search index="dvvy_event_summary" | bin _time span=1d | rename index AS dimension 
+    | eval dimension="events"
+    | timechart usenull=0 useother=0 count BY dimension limit=0]</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Event Count</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">405</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">0</option>
+        <option name="trellis.size">small</option>
+      </chart>
+      <table>
+        <title>Detailed information by chargeback dimension and index</title>
+        <search>
+          <query>(index IN ($idx$) dimension IN ($dimension$)) OR index="dvvy_event_summary"
+| eval dataDays=_time, dataDaysCount=_time
+| bin dataDays span=1d 
+| bin dataDaysCount span=1d 
+| eventstats dc(dataDaysCount) AS dataDaysCount
+| eval dataDaysCount=tonumber(dataDaysCount)
+| fillnull value="events" dimension
+| stats latest(_time) AS latestTimestamp c AS eventCount dc(dataDays) AS daysWithData values(dataDaysCount) AS totalDays BY dimension index
+| eval gapDays=totalDays-daysWithData
+| eval Status=if(gapDays &gt;= 1, "Missing Data", "OK")
+| eval latestTimestamp = strftime(latestTimestamp, "%Y-%m-%d %H:%M:%S")
+| sort + daysWithData
+| rename dimension AS "Chargeback Dimension" index AS Index eventCount AS "Event Count" latestTimestamp AS "Latest Index Timestamp" totalDays AS "Total Days in Timerange" daysWithData AS "Days with Data" daysSinceData AS "Days Since Data Written" gapDays AS "Days w/ Missing Data"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"Missing Data":#DC4E41}</colorPalette>
+        </format>
+        <drilldown>
+          <link target="_blank">search?q=index=$row.Index$&amp;earliest=$timerange.earliest$&amp;latest=$timerange.latest$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

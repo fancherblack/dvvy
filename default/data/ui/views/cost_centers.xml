@@ -1,0 +1,757 @@
+<form version="1.1" theme="dark">
+  <label>Cost Centers</label>
+  <search id="summaries_base">
+    <query> 
+index=dvvy_charge_summary costCenter IN ($costCenter$)
+| table _time idx st group costCenter licenseCharge dailyTotalLicenseGB costLicenseGB state totalTB storageCharge costStorageTB indexerTargetGB indexerResources indexerCharge costIndexer dailyPercent
+| eval dailyTotalLicenseGB=round(dailyTotalLicenseGB,5), totalTB=round(totalTB,5), indexerResources=round(indexerResources,5)
+
+    </query>
+    <earliest>$timerange.earliest$</earliest>
+    <latest>$timerange.latest$</latest>
+  </search>
+  <search>
+    <query>| inputlookup dvvyConfig | head 1 | fields + currencyUnit currencyUnitPosition indexerTargetGB</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="currencyUnit">$result.currencyUnit$</set>
+        <set token="currencyUnitPosition">$result.currencyUnitPosition$</set>
+        <set token="indexerTargetGB">$result.indexerTargetGB$</set>
+      </condition>
+      <condition>
+        <set token="configUserBadness">1</set>
+      </condition>
+    </finalized>
+  </search>
+  <search>
+    <query>| `DVVY_ADMIN_CHECK`</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="isAdmin">1</set>
+      </condition>
+      <condition match=" 'job.resultCount' == 0">
+        <set token="isAdmin">0</set>
+      </condition>
+    </finalized>
+  </search>
+  <search>
+    <query>| rest /services/authentication/current-context splunk_server=local | fields username</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="username">$result.username$</set>
+      </condition>
+      <condition match=" 'job.resultCount' == 0">
+        <set token="getUserBadness">1</set>
+      </condition>
+    </finalized>
+  </search>
+  <fieldset submitButton="false">
+    <input id="cc" type="multiselect" token="costCenter" searchWhenChanged="true">
+      <label>Cost Center</label>
+      <fieldForLabel>costCenterDisplay</fieldForLabel>
+      <fieldForValue>costCenter</fieldForValue>
+      <search id="cc_search">
+        <query>index=dvvy_charge_summary earliest=$timerange.earliest$ latest=$timerange.latest$
+    [| inputlookup dvvyGroups
+    | eval dashboardUser = if($isAdmin$ == 1, ".", "$username$")
+    | rex mode=sed field=techContact "s/,\s/,/g"
+    | makemv delim="," techContact
+    | mvexpand techContact
+    | where match(techContact,dashboardUser)
+    | table group]
+| lookup dvvyCostCenters costCenter OUTPUT costCenterDescription 
+| dedup costCenter
+| eval costCenterDisplay = costCenterDescription . " (" . costCenter . ")"
+| table costCenterDisplay costCenter
+| sort + costCenterDisplay
+| appendpipe [| stats values(costCenter) AS costCenter
+| eval costCenterDisplay = "Any"
+| mvcombine delim=" " costCenter]
+| dedup costCenter</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <delimiter> </delimiter>
+    </input>
+    <input type="time" token="timerange">
+      <label>Time Range</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <div>
+          <div>
+            <a style="float:left;font-weight:normal;font-size:100%;color:#ffffff;border:1px solid #ccc;padding:1px 8px;border-radius:6px;background-color:#457dd1;" href="/app/$env:app$/$env:page$">
+              <i class="icon-rotate icon"/> Reset Dashboard</a>
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>License, Storage, and Indexer Charges by Cost Center</title>
+      <table>
+        <search base="summaries_base">
+          <query>| stats sum(licenseCharge) AS "Ingest Charge" sum(storageCharge) AS "Storage Charge" sum(indexerCharge) AS "Indexer Charge" BY costCenter
+| lookup dvvyCostCenters costCenter OUTPUT costCenterDescription 
+| appendcols [search index=dvvy_charge_summary costCenter IN ($costCenter$) | stats delim="," values(group) AS group BY costCenter | lookup dvvyGroups group OUTPUT groupDisplay | fields - group | makemv delim="," groupDisplay]
+| rename costCenter AS "Cost Center" groupDisplay AS Customers
+| table "Cost Center" Customers "Total Charge" "Ingest Charge" "Storage Charge" "Indexer Charge"
+| addtotals
+| eval Total=round(Total, 2)</query>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="Indexer Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="License Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Storage Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="color" field="Indexer Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="Storage Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="License Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Total">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Ingest Charge">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Customers</title>
+      <single>
+        <search base="summaries_base">
+          <query>
+| stats dc(group)</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Indexes</title>
+      <single>
+        <search base="summaries_base">
+          <query>
+| stats dc(idx)</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Source Types</title>
+      <single>
+        <search base="summaries_base">
+          <query>
+| stats dc(st)</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Charges</title>
+      <single>
+        <search base="summaries_base">
+          <query>| stats sum(licenseCharge) AS licenseCharge sum(storageCharge) AS storageCharge sum(indexerCharge) AS indexerCharge
+| appendpipe [stats count | where count=0]
+| eval total=indexerCharge + licenseCharge + storageCharge
+| table total</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">51</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unit">$currencyUnit$</option>
+        <option name="unitPosition">$currencyUnitPosition$</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Ingest</title>
+      <single>
+        <search base="summaries_base">
+          <query>| stats sum(licenseCharge)
+| appendpipe [stats count | where count=0]</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unit">$currencyUnit$</option>
+        <option name="unitPosition">$currencyUnitPosition$</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Storage</title>
+      <single>
+        <search base="summaries_base">
+          <query>| stats sum(storageCharge)
+| appendpipe [stats count | where count=0]</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unit">$currencyUnit$</option>
+        <option name="unitPosition">$currencyUnitPosition$</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Indexer</title>
+      <single>
+        <search base="summaries_base">
+          <query>| stats sum(indexerCharge)
+| appendpipe [stats count | where count=0]</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unit">$currencyUnit$</option>
+        <option name="unitPosition">$currencyUnitPosition$</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Total Charges by Cost Center ($currencyUnit$)</title>
+      <chart>
+        <search base="summaries_base">
+          <query>| timechart sum(licenseCharge) as Ingest sum(storageCharge) AS Storage sum(indexerCharge) AS Indexer BY costCenter
+| rename costCenter AS "Cost Center"</query>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Total ($currencyUnit$)</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.overlayFields">Average</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">354</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Ingest (GB) Charges</title>
+      <chart>
+        <search>
+          <query>index=dvvy_charge_summary dimension="licenseGB" costCenter IN ($costCenter$)
+| eval dailyTotalLicenseGB = round(dailyTotalLicenseGB,5)
+| timechart span=1d sum(licenseCharge) AS "Charges ($currencyUnit$)" BY group</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">679</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Ingest Charge Detail</title>
+      <table>
+        <search>
+          <query>index=dvvy_charge_summary dimension="licenseGB" costCenter IN ($costCenter$)
+| eval _time = strftime(_time, "%Y-%m-%d")
+| lookup dvvyGroups group OUTPUT groupDisplay 
+| table _time costCenter groupDisplay idx st dailyTotalLicenseGB dailyPercent  licenseCharge
+| rename costCenter AS "Cost Center" groupDisplay AS Customer idx AS Index st AS "Source Type" dailyTotalLicenseGB AS Ingest dailyPercent AS "% Events" costLicenseGB AS "Cost Per GB" licenseCharge AS "License Charge"
+| sort - _time "License Charge"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="Daily Cost Per GB">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="License Charge">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="color" field="License Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="Daily Total License (GB)">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="Daily Total License">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Daily Total License">
+          <option name="precision">3</option>
+          <option name="unit">GB</option>
+        </format>
+        <format type="color" field="License Used">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="License Used">
+          <option name="precision">3</option>
+          <option name="unit">GB</option>
+        </format>
+        <format type="number" field="Ingest">
+          <option name="precision">3</option>
+          <option name="unit">GB</option>
+        </format>
+        <format type="color" field="Ingest">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Storage Charge Detail</title>
+      <table>
+        <search>
+          <query>index=dvvy_charge_summary dimension="storage" costCenter IN ($costCenter$)
+| eval _time = strftime(_time, "%Y-%m-%d")
+| lookup dvvyGroups group OUTPUT groupDisplay 
+| table _time costCenter groupDisplay idx state totalTB dailyPercent  storageCharge
+| rename costCenter AS "Cost Center" groupDisplay AS Customer idx AS Index state AS "State" totalTB AS "Storage Used" dailyPercent AS "% Events" costStorageTB AS "Cost Per TB" storageCharge AS "Storage Charge"
+| sort - _time "Storage Charge"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="Daily Cost Per GB">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="License Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Cost Per TB">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Storage Charge">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="color" field="Storage Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="Total Storage (TB)">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Total Storage (TB)">
+          <option name="unit">TB</option>
+        </format>
+        <format type="color" field="Total Storage">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Total Storage">
+          <option name="precision">3</option>
+          <option name="unit">TB</option>
+        </format>
+        <format type="color" field="Storage Used">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Storage Used">
+          <option name="precision">3</option>
+          <option name="unit">TB</option>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <title>Storage (TB) Charges</title>
+      <chart>
+        <search>
+          <query>index=dvvy_charge_summary dimension="storage" costCenter IN ($costCenter$)
+| eval totalTB = round(totalTB,5)
+| timechart sum(storageCharge) AS "Charges ($)" BY group</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">606</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Indexer (IDXL) Charges</title>
+      <chart>
+        <search>
+          <query>index=dvvy_charge_summary dimension="indexerSimple" costCenter IN ($costCenter$)
+| eval indexerResources = round(indexerResources,5)
+| timechart sum(indexerCharge) AS "Charges" BY group</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">572</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Indexer Cost Detail</title>
+      <table>
+        <search>
+          <query>index=dvvy_charge_summary dimension="indexerSimple" costCenter IN ($costCenter$)
+| eval _time = strftime(_time, "%Y-%m-%d")
+| lookup dvvyGroups group OUTPUT groupDisplay 
+| table _time costCenter groupDisplay idx st indexerResources dailyPercent  indexerCharge
+| eval indexerResources=round(indexerResources,3)
+| rename costCenter AS "Cost Center" groupDisplay AS Customer idx AS Index st AS "Source Type" indexerResources AS IDXL dailyPercent AS "% Events" costIndexer AS "IDXL Cost" indexerCharge AS "IDXL Charge"
+| sort - _time "Indexer Charge"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="Daily Cost Per GB">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="License Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Cost Per TB">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Storage Charge">
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="color" field="Indexer Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="License Volume (GB)">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Indexer Daily Volume Target">
+          <option name="unit">GB</option>
+        </format>
+        <format type="color" field="License Used">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="License Used">
+          <option name="precision">3</option>
+          <option name="unit">GB</option>
+        </format>
+        <format type="color" field="Indexer Resources">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="Indexer Resources">
+          <option name="precision">3</option>
+        </format>
+        <format type="number" field="Indexer Charge">
+          <option name="unit">$currencyUnit$</option>
+        </format>
+        <format type="number" field="Indexer Cost">
+          <option name="unit">$currencyUnit$</option>
+        </format>
+        <format type="color" field="IDXL">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="IDXL Charge">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#3C444D"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="number" field="IDXL Charge">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

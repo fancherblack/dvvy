@@ -1,0 +1,204 @@
+<form version="1.1" theme="dark">
+  <label>Chargeback Summary</label>
+  <search>
+    <query>| inputlookup dvvyConfig | head 1 | fields + currencyUnit currencyUnitPosition indexerTargetGB</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="currencyUnit">$result.currencyUnit$</set>
+        <set token="currencyUnitPosition">$result.currencyUnitPosition$</set>
+        <set token="indexerTargetGB">$result.indexerTargetGB$</set>
+      </condition>
+      <condition>
+        <set token="configUserBadness">1</set>
+      </condition>
+    </finalized>
+  </search>
+  <search>
+    <query>| `DVVY_ADMIN_CHECK`</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="isAdmin">1</set>
+      </condition>
+      <condition match=" 'job.resultCount' == 0">
+        <set token="isAdmin">0</set>
+      </condition>
+    </finalized>
+  </search>
+  <search>
+    <query>| rest /services/authentication/current-context splunk_server=local | fields username</query>
+    <earliest>1</earliest>
+    <latest>now</latest>
+    <finalized>
+      <condition match=" 'job.resultCount' != 0">
+        <set token="username">$result.username$</set>
+      </condition>
+      <condition match=" 'job.resultCount' == 0">
+        <set token="getUserBadness">1</set>
+      </condition>
+    </finalized>
+  </search>
+  <fieldset submitButton="false">
+    <input id="grp" type="multiselect" token="group" searchWhenChanged="true">
+      <label>Customer</label>
+      <fieldForLabel>groupDisplay</fieldForLabel>
+      <fieldForValue>group</fieldForValue>
+      <search id="grp_search">
+        <query>index=dvvy_charge_summary earliest=$timerange.earliest$ latest=$timerange.latest$
+    [| inputlookup dvvyGroups
+    | eval dashboardUser = if($isAdmin$ == 1, ".", "$username$")
+    | rex mode=sed field=techContact "s/,\s/,/g"
+    | makemv delim="," techContact
+    | mvexpand techContact
+    | where match(techContact,dashboardUser)
+    | table group]
+| dedup group
+| lookup dvvyGroups group OUTPUT groupDisplay
+| appendpipe [| stats values(group) AS group
+| eval groupDisplay = "Any"
+| mvcombine delim=" " group]
+| table group groupDisplay
+| dedup group</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <delimiter> </delimiter>
+    </input>
+    <input type="time" token="timerange" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>
+        <earliest>-1mon@mon</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <div>
+          <div>
+            <a style="float:left;font-weight:normal;font-size:100%;color:#ffffff;border:1px solid #ccc;padding:1px 8px;border-radius:6px;background-color:#457dd1;" href="/app/$env:app$/$env:page$">
+              <i class="icon-rotate icon"/> Reset Dashboard</a>
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Summary of Charges</title>
+      <chart>
+        <title>License, Storage, Indexer, Forwarder, and Admin Charges over Timerange</title>
+        <search>
+          <query>index=dvvy_charge_summary group IN ($group$)
+| fillnull adminCharge chargeAdminFlat value=0
+| eval totalAdminCharge=adminCharge+chargeAdminFlat
+| timechart span=1mon@mon sum(chargeVCPU) AS VCPU sum(licenseCharge) AS Ingest sum(storageCharge) AS Storage sum(searchCharge) AS Search sum(rtSearchCharge) AS "RT Search" sum(indexerCharge) AS Indexer sum(forwarderCharge) AS Forwarder sum(totalAdminCharge) AS Admin</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Charges ($currencyUnit$)</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">379</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Monthly Charges</title>
+      <table>
+        <search>
+          <query>index=dvvy_charge_summary group IN ($group$)
+| fillnull chargeVCPU licenseCharge storageCharge searchCharge rtSearchCharge indexerCharge forwarderCharge adminCharge chargeAdminFlat value=0
+| eval totalAdminCharge=adminCharge+chargeAdminFlat
+| timechart span=1mon@mon sum(chargeVCPU) AS VCPU sum(licenseCharge) AS Ingest sum(storageCharge) AS Storage sum(searchCharge) AS Search sum(rtSearchCharge) AS "RT Search" sum(indexerCharge) AS Indexer sum(forwarderCharge) AS Forwarder sum(totalAdminCharge) AS Admin
+| fillnull value="0"
+| addtotals
+| sort 0 - _time</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="Total">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="VCPU">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Storage">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Search">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Indexer">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Ingest">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Forwarder">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="Admin">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+        <format type="number" field="RT Search">
+          <option name="unit">$currencyUnit$</option>
+          <option name="unitPosition">before</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
