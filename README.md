@@ -1,7 +1,8 @@
 # dvvy Installation & Configuration
 
-This document provides information relating to the installation and
-configuration of the dvvy Chargeback app for Splunk Enterprise.
+Read on for information pertaining to the installation and
+configuration of the dvvy Chargeback app for Splunk Enterprise, 
+part of the RedFactor Success Suite.
 
 ## Before installing dvvy 
 
