@@ -1,5 +1,7 @@
 # dvvy Installation & Configuration
 
+Check [this page](https://redfactorapps.com/products/dvvy/) for a summary of dvvy's capabilities. 
+
 Read on for information pertaining to the installation and
 configuration of the dvvy Chargeback app for Splunk Enterprise, 
 part of the RedFactor Success Suite.
